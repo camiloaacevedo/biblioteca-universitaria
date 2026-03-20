@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { eliminarLibroAction } from './actions';
@@ -6,6 +8,18 @@ export default async function LibrosPage({ searchParams }) {
   const supabase = await createClient();
   const params = await searchParams;
   const busqueda = params?.q || '';
+
+  // Obtener rol del usuario actual
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: usuarioActual } = await supabase
+    .from('usuarios')
+    .select('rol')
+    .eq('auth_id', user.id)
+    .single();
+
+  const esAdmin = usuarioActual?.rol === 'bibliotecario';
 
   let query = supabase
     .from('libros')
@@ -31,12 +45,14 @@ export default async function LibrosPage({ searchParams }) {
         <h1 className="text-2xl font-bold text-gray-800">
           📚 Catálogo de Libros
         </h1>
-        <Link
-          href="/libros/nuevo"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          + Nuevo Libro
-        </Link>
+        {esAdmin && (
+          <Link
+            href="/libros/nuevo"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            + Nuevo Libro
+          </Link>
+        )}
       </div>
 
       {/* Buscador */}
@@ -115,24 +131,28 @@ export default async function LibrosPage({ searchParams }) {
                       >
                         Ver
                       </Link>
-                      <Link
-                        href={`/libros/${libro.id}/editar`}
-                        className="text-yellow-600 hover:underline"
-                      >
-                        Editar
-                      </Link>
-                      <form
-                        action={eliminarLibroAction}
-                        onSubmit="return confirm('¿Eliminar este libro?')"
-                      >
-                        <input type="hidden" name="id" value={libro.id} />
-                        <button
-                          type="submit"
-                          className="text-red-600 hover:underline"
-                        >
-                          Eliminar
-                        </button>
-                      </form>
+                      {esAdmin && (
+                        <>
+                          <Link
+                            href={`/libros/${libro.id}/editar`}
+                            className="text-yellow-600 hover:underline"
+                          >
+                            Editar
+                          </Link>
+                          <form
+                            action={eliminarLibroAction}
+                            onSubmit="return confirm('¿Eliminar este libro?')"
+                          >
+                            <input type="hidden" name="id" value={libro.id} />
+                            <button
+                              type="submit"
+                              className="text-red-600 hover:underline"
+                            >
+                              Eliminar
+                            </button>
+                          </form>
+                        </>
+                      )}
                     </div>
                   </td>
                 </tr>

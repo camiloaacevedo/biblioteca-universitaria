@@ -1,10 +1,8 @@
 import { createServerClient } from '@supabase/ssr'
 import { NextResponse } from 'next/server'
 
-export async function middleware(request) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
+export async function proxy(request) {
+  let supabaseResponse = NextResponse.next({ request })
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -18,9 +16,7 @@ export async function middleware(request) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value)
           )
-          supabaseResponse = NextResponse.next({
-            request,
-          })
+          supabaseResponse = NextResponse.next({ request })
           cookiesToSet.forEach(({ name, value, options }) =>
             supabaseResponse.cookies.set(name, value, options)
           )
@@ -29,11 +25,9 @@ export async function middleware(request) {
     }
   )
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
+  const { data: { user } } = await supabase.auth.getUser()
 
-  // Rutas protegidas — redirige al login si no hay sesión
+  // Solo redirigir al login si no hay sesión
   if (
     !user &&
     !request.nextUrl.pathname.startsWith('/login') &&

@@ -1,3 +1,5 @@
+export const dynamic = 'force-dynamic'
+
 import { createClient } from '@/lib/supabase/server'
 import { crearLibroAction } from '../actions'
 import Link from 'next/link'
