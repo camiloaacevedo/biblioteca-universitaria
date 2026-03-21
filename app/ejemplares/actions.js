@@ -38,6 +38,23 @@ export async function editarEjemplarAction(formData) {
 
 export async function eliminarEjemplarAction(formData) {
   const supabase = await createClient()
-  await supabase.from('ejemplares').delete().eq('id', formData.get('id'))
+  const id = formData.get('id')
+
+  // Verificar si tiene préstamos activos
+  const { data: prestamosActivos } = await supabase
+    .from('prestamos')
+    .select('id')
+    .eq('ejemplar_id', id)
+    .eq('estado', 'aprobado')
+
+  if (prestamosActivos?.length > 0) {
+    return { error: 'No se puede eliminar un ejemplar con préstamos activos' }
+  }
+
+  // Eliminar préstamos históricos asociados
+  await supabase.from('prestamos').delete().eq('ejemplar_id', id)
+
+  // Eliminar ejemplar
+  await supabase.from('ejemplares').delete().eq('id', id)
   redirect('/ejemplares')
 }

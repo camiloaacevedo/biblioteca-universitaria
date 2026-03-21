@@ -1,62 +1,72 @@
-'use server'
+'use server';
 
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
 export async function crearLibroAction(formData) {
-  const supabase = await createClient()
+  const supabase = await createClient();
 
-  const titulo = formData.get('titulo')
-  const isbn = formData.get('isbn')
-  const editorial = formData.get('editorial')
-  const anio = formData.get('anio')
-  const categoria_id = formData.get('categoria_id')
-  const descripcion = formData.get('descripcion')
-  const autores = formData.get('autores') // separados por coma
+  const titulo = formData.get('titulo');
+  const isbn = formData.get('isbn');
+  const editorial = formData.get('editorial');
+  const anio = formData.get('anio');
+  const categoria_id = formData.get('categoria_id');
+  const descripcion = formData.get('descripcion');
+  const autores = formData.get('autores'); // separados por coma
 
   // 1. Insertar libro
   const { data: libro, error } = await supabase
     .from('libros')
-    .insert({ titulo, isbn, editorial, anio: anio || null, categoria_id: categoria_id || null, descripcion })
+    .insert({
+      titulo,
+      isbn,
+      editorial,
+      anio: anio || null,
+      categoria_id: categoria_id || null,
+      descripcion,
+    })
     .select()
-    .single()
+    .single();
 
-  if (error) return { error: error.message }
+  if (error) return { error: error.message };
 
   // 2. Insertar autores
   if (autores) {
-    const nombresAutores = autores.split(',').map(a => a.trim()).filter(Boolean)
+    const nombresAutores = autores
+      .split(',')
+      .map((a) => a.trim())
+      .filter(Boolean);
     for (const nombre of nombresAutores) {
       // Buscar o crear autor
       let { data: autor } = await supabase
         .from('autores')
         .select('id')
         .eq('nombre', nombre)
-        .single()
+        .single();
 
       if (!autor) {
         const { data: nuevoAutor } = await supabase
           .from('autores')
           .insert({ nombre })
           .select()
-          .single()
-        autor = nuevoAutor
+          .single();
+        autor = nuevoAutor;
       }
 
       // Relacionar con libro
       await supabase.from('libro_autores').insert({
         libro_id: libro.id,
-        autor_id: autor.id
-      })
+        autor_id: autor.id,
+      });
     }
   }
 
-  redirect('/libros')
+  redirect('/libros');
 }
 
 export async function editarLibroAction(formData) {
-  const supabase = await createClient()
-  const id = formData.get('id')
+  const supabase = await createClient();
+  const id = formData.get('id');
 
   const { error } = await supabase
     .from('libros')
@@ -68,15 +78,41 @@ export async function editarLibroAction(formData) {
       categoria_id: formData.get('categoria_id') || null,
       descripcion: formData.get('descripcion'),
     })
-    .eq('id', id)
+    .eq('id', id);
 
-  if (error) return { error: error.message }
-  redirect('/libros')
+  if (error) return { error: error.message };
+  redirect('/libros');
 }
 
 export async function eliminarLibroAction(formData) {
   const supabase = await createClient()
   const id = formData.get('id')
+
+  // Obtener ejemplares del libro
+  const { data: ejemplares } = await supabase
+    .from('ejemplares')
+    .select('id')
+    .eq('libro_id', id)
+
+  if (ejemplares?.length > 0) {
+    const ejemplarIds = ejemplares.map(e => e.id)
+
+    // Verificar si tiene préstamos activos
+    const { data: prestamosActivos } = await supabase
+      .from('prestamos')
+      .select('id')
+      .in('ejemplar_id', ejemplarIds)
+      .eq('estado', 'aprobado')
+
+    if (prestamosActivos?.length > 0) {
+      return { error: 'No se puede eliminar un libro con préstamos activos' }
+    }
+
+    // Eliminar préstamos históricos y ejemplares
+    await supabase.from('prestamos').delete().in('ejemplar_id', ejemplarIds)
+    await supabase.from('ejemplares').delete().eq('libro_id', id)
+  }
+
   await supabase.from('libros').delete().eq('id', id)
   redirect('/libros')
 }
