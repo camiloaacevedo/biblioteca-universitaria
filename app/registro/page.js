@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { registroAction } from '../actions'
+import { registroAction } from '@/app/(auth)/actions'
 import Link from 'next/link'
 
 export default function RegistroPage() {
