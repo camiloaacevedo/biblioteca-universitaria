@@ -1,25 +1,29 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import { solicitarPrestamoAction } from '../actions'
 import Link from 'next/link'
 
 export default function NuevoPrestamoForm({ usuarios, libros, usuarioActual, esAdmin }) {
   const [libroSeleccionado, setLibroSeleccionado] = useState('')
   const [loading, setLoading] = useState(false)
-  const router = useRouter()
+  const [error, setError] = useState(null)
 
-  const ejemplaresDisponibles = libros
-    ?.find(l => l.id === parseInt(libroSeleccionado))
-    ?.ejemplares?.filter(e => e.estado === 'disponible') || []
+  const ejemplaresDisponibles =
+    libros
+      ?.find(l => l.id === parseInt(libroSeleccionado))
+      ?.ejemplares?.filter(e => e.estado === 'disponible') || []
 
   async function handleSubmit(e) {
     e.preventDefault()
     setLoading(true)
+    setError(null)
     const formData = new FormData(e.target)
-    await solicitarPrestamoAction(formData)
-    setLoading(false)
+    const result = await solicitarPrestamoAction(formData)
+    if (result?.error) {
+      setError(result.error)
+      setLoading(false)
+    }
   }
 
   return (
@@ -62,7 +66,10 @@ export default function NuevoPrestamoForm({ usuarios, libros, usuarioActual, esA
               const disponibles = l.ejemplares?.filter(e => e.estado === 'disponible').length ?? 0
               return (
                 <option key={l.id} value={l.id} disabled={disponibles === 0}>
-                  {l.titulo} {disponibles === 0 ? '(sin ejemplares disponibles)' : `(${disponibles} disponible${disponibles > 1 ? 's' : ''})`}
+                  {l.titulo}{' '}
+                  {disponibles === 0
+                    ? '(sin ejemplares disponibles)'
+                    : `(${disponibles} disponible${disponibles > 1 ? 's' : ''})`}
                 </option>
               )
             })}
@@ -97,6 +104,12 @@ export default function NuevoPrestamoForm({ usuarios, libros, usuarioActual, esA
           ℹ️ La solicitud quedará en estado <strong>pendiente</strong> hasta que un bibliotecario la apruebe.
         </div>
 
+        {error && (
+          <div className="bg-red-100 text-red-700 px-4 py-2 rounded-lg text-sm">
+            ⚠️ {error}
+          </div>
+        )}
+
         <div className="flex gap-3 pt-2">
           <button
             type="submit"
@@ -115,6 +128,7 @@ export default function NuevoPrestamoForm({ usuarios, libros, usuarioActual, esA
             Cancelar
           </Link>
         </div>
+
       </form>
     </div>
   )
