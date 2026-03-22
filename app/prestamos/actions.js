@@ -9,7 +9,7 @@ export async function solicitarPrestamoAction(formData) {
   const usuario_id = formData.get('usuario_id');
   const ejemplar_id = formData.get('ejemplar_id');
 
-  // Validar que el usuario esté activo
+  // Verificar que el usuario esté activo
   const { data: usuario } = await supabase
     .from('usuarios')
     .select('estado')
@@ -18,6 +18,21 @@ export async function solicitarPrestamoAction(formData) {
 
   if (!usuario || usuario.estado !== 'activo') {
     return { error: 'El usuario está bloqueado o no existe' };
+  }
+
+  // Verificar si tiene multas pendientes
+  const { data: multasPendientes } = await supabase
+    .from('prestamos')
+    .select('id, multa')
+    .eq('usuario_id', usuario_id)
+    .eq('estado', 'devuelto')
+    .gt('multa', 0);
+
+  if (multasPendientes?.length > 0) {
+    const totalMulta = multasPendientes.reduce((acc, p) => acc + p.multa, 0);
+    return {
+      error: `El usuario tiene multas pendientes por $${totalMulta.toLocaleString('es-CO')}. Debe pagarlas antes de solicitar un nuevo préstamo.`,
+    };
   }
 
   // Validar que el ejemplar esté disponible

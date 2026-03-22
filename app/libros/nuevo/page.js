@@ -38,11 +38,12 @@ export default async function NuevoLibroPage() {
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Año
+                Año *
               </label>
               <input
                 type="number"
                 name="anio"
+                required
                 min="1800"
                 max="2100"
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
@@ -83,24 +84,26 @@ export default async function NuevoLibroPage() {
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Editorial
+                Editorial *
               </label>
               <input
                 type="text"
                 name="editorial"
+                required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
                 placeholder="Editorial Norma"
               />
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Categoría
+                Categoría *
               </label>
               <select
                 name="categoria_id"
+                required
                 className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               >
-                <option value="">Sin categoría</option>
+                <option value="">Selecciona una categoría</option>
                 {categorias?.map((cat) => (
                   <option key={cat.id} value={cat.id}>
                     {cat.nombre}

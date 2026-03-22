@@ -1,4 +1,4 @@
-export const dynamic = 'force-dynamic'
+export const dynamic = 'force-dynamic';
 
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
@@ -54,12 +54,14 @@ export default async function PrestamosPage({ searchParams }) {
     <div>
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">🔄 Préstamos</h1>
-        <Link
-          href="/prestamos/nuevo"
-          className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
-        >
-          + Solicitar Préstamo
-        </Link>
+        {!esAdmin && (
+          <Link
+            href="/prestamos/nuevo"
+            className="bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition"
+          >
+            + Solicitar Préstamo
+          </Link>
+        )}
       </div>
 
       {/* Filtros por estado */}

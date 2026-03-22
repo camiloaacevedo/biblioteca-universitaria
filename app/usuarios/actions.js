@@ -1,10 +1,23 @@
 'use server'
 
 import { createClient } from '@/lib/supabase/server'
+import { createAdminClient } from '@/lib/supabase/admin'
 import { redirect } from 'next/navigation'
 
 export async function crearUsuarioAction(formData) {
   const supabase = await createClient()
+
+  // Verificar que el usuario actual es bibliotecario
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data: usuarioActual } = await supabase
+    .from('usuarios')
+    .select('rol')
+    .eq('auth_id', user.id)
+    .single()
+
+  if (usuarioActual?.rol !== 'bibliotecario') {
+    return { error: 'No tienes permisos para crear usuarios' }
+  }
 
   const correo = formData.get('correo')
   const password = formData.get('password')
@@ -14,15 +27,16 @@ export async function crearUsuarioAction(formData) {
   const rol = formData.get('rol')
   const carrera = formData.get('carrera')
 
-  // 1. Crear en Supabase Auth
-  const { data: authData, error: authError } = await supabase.auth.signUp({
+  // Usar admin client para no cambiar la sesión actual
+  const supabaseAdmin = createAdminClient()
+  const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
     email: correo,
     password: password,
+    email_confirm: true,
   })
 
   if (authError) return { error: authError.message }
 
-  // 2. Insertar en tabla usuarios
   const { error: dbError } = await supabase.from('usuarios').insert({
     auth_id: authData.user.id,
     codigo,
