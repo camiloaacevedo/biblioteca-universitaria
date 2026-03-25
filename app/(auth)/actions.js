@@ -21,13 +21,15 @@ export async function loginAction(formData) {
 export async function registroAction(formData) {
   const supabase = await createClient();
 
+  const nombresInput = formData.get('nombres');
+  const apellidos = formData.get('apellidos');
+  const nombres = `${nombresInput} ${apellidos}`;
+  const rol = formData.get('rol') || 'estudiante';
+  const carrera = formData.get('carrera');
   const correo = formData.get('correo');
   const password = formData.get('password');
-  const nombres = formData.get('nombres');
   const codigo = formData.get('codigo');
   const identificacion = formData.get('identificacion');
-  const rol = formData.get('rol');
-  const carrera = formData.get('carrera');
 
   // 1. Crear usuario en Supabase Auth
   const { data: authData, error: authError } = await supabase.auth.signUp({
