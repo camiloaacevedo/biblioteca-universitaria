@@ -3,6 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import SolicitarPrestamoBtn from './SolicitarPrestamoBtn';
 
 export default async function DetalleLibroPage({ params }) {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export default async function DetalleLibroPage({ params }) {
   } = await supabase.auth.getUser();
   const { data: usuarioActual } = await supabase
     .from('usuarios')
-    .select('rol')
+    .select('id, rol')
     .eq('auth_id', user.id)
     .single();
 
@@ -138,6 +139,18 @@ export default async function DetalleLibroPage({ params }) {
                 ))}
               </tbody>
             </table>
+          )}
+          {/* Solicitar préstamo — solo usuarios no admin */}
+          {!esAdmin && (
+            <div className="mt-6 border-t pt-4">
+              <h3 className="font-medium text-gray-700 mb-3">
+                Solicitar préstamo
+              </h3>
+              <SolicitarPrestamoBtn
+                usuarioId={usuarioActual?.id}
+                ejemplares={libro.ejemplares}
+              />
+            </div>
           )}
         </div>
       </div>
