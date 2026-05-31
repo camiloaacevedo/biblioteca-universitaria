@@ -67,6 +67,22 @@ export async function solicitarPrestamoAction(formData) {
   });
 
   if (error) return { error: error.message };
+
+  // Verificar si el ejemplar tiene reservas activas de otros usuarios
+  const { data: reservaAjena } = await supabase
+    .from('reservas')
+    .select('id, usuario_id')
+    .eq('ejemplar_id', ejemplar_id)
+    .eq('estado', 'activa')
+    .neq('usuario_id', usuario_id)
+    .limit(1);
+
+  if (reservaAjena?.length > 0) {
+    return {
+      error:
+        'Este ejemplar tiene una reserva activa de otro usuario. Puedes reservarlo para la siguiente disponibilidad.',
+    };
+  }
   redirect('/prestamos');
 }
 
@@ -96,6 +112,28 @@ export async function aprobarPrestamoAction(formData) {
     .eq('auth_id', user.id)
     .single();
 
+  // Verificar reservas activas de otros usuarios
+  const { data: prestamo } = await supabase
+    .from('prestamos')
+    .select('usuario_id')
+    .eq('id', id)
+    .single();
+
+  const { data: reservaAjena } = await supabase
+    .from('reservas')
+    .select('id')
+    .eq('ejemplar_id', ejemplar_id)
+    .eq('estado', 'activa')
+    .neq('usuario_id', prestamo.usuario_id)
+    .limit(1);
+
+  if (reservaAjena?.length > 0) {
+    return {
+      error:
+        'Este ejemplar tiene una reserva activa. Convierta la reserva en préstamo desde la sección de Reservas.',
+    };
+  }
+
   await supabase
     .from('prestamos')
     .update({
@@ -120,14 +158,12 @@ export async function registrarDevolucionAction(formData) {
   const ejemplar_id = formData.get('ejemplar_id');
   const observaciones = formData.get('observaciones');
 
-  // Obtener el préstamo
   const { data: prestamo } = await supabase
     .from('prestamos')
     .select('fecha_vencimiento')
     .eq('id', id)
     .single();
 
-  // Calcular multa si hay retraso
   const { data: config } = await supabase
     .from('configuracion')
     .select('tarifa_multa_dia')
@@ -144,7 +180,6 @@ export async function registrarDevolucionAction(formData) {
     multa = diasRetraso * (config?.tarifa_multa_dia || 500);
   }
 
-  // Registrar devolución
   await supabase
     .from('prestamos')
     .update({
@@ -155,11 +190,27 @@ export async function registrarDevolucionAction(formData) {
     })
     .eq('id', id);
 
-  // Actualizar ejemplar a disponible
-  await supabase
-    .from('ejemplares')
-    .update({ estado: 'disponible' })
-    .eq('id', ejemplar_id);
+  // Verificar si hay reservas activas para este ejemplar
+  const { data: reservasActivas } = await supabase
+    .from('reservas')
+    .select('id, usuario_id, usuarios(nombres, correo)')
+    .eq('ejemplar_id', ejemplar_id)
+    .eq('estado', 'activa')
+    .order('created_at')
+    .limit(1);
+
+  if (reservasActivas?.length > 0) {
+    // Marcar el ejemplar como reservado en vez de disponible
+    await supabase
+      .from('ejemplares')
+      .update({ estado: 'disponible' })
+      .eq('id', ejemplar_id);
+  } else {
+    await supabase
+      .from('ejemplares')
+      .update({ estado: 'disponible' })
+      .eq('id', ejemplar_id);
+  }
 
   redirect('/prestamos');
 }

@@ -88,3 +88,57 @@ export async function cancelarReservaAction(formData) {
 
   redirect('/reservas');
 }
+
+export async function convertirReservaEnPrestamoAction(formData) {
+  const supabase = await createClient();
+  const reserva_id = formData.get('reserva_id');
+  const usuario_id = formData.get('usuario_id');
+  const ejemplar_id = formData.get('ejemplar_id');
+
+  // Obtener días de préstamo del libro
+  const { data: ejemplar } = await supabase
+    .from('ejemplares')
+    .select('libro_id, libros(dias_prestamo)')
+    .eq('id', ejemplar_id)
+    .single();
+
+  const diasPrestamo = ejemplar?.libros?.dias_prestamo || 8;
+  const fechaPrestamo = new Date();
+  const fechaVencimiento = new Date();
+  fechaVencimiento.setDate(fechaVencimiento.getDate() + diasPrestamo);
+
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const { data: bibliotecario } = await supabase
+    .from('usuarios')
+    .select('id')
+    .eq('auth_id', user.id)
+    .single();
+
+  // Crear préstamo directamente aprobado
+  const { error } = await supabase.from('prestamos').insert({
+    usuario_id,
+    ejemplar_id,
+    bibliotecario_id: bibliotecario.id,
+    estado: 'aprobado',
+    fecha_prestamo: fechaPrestamo.toISOString(),
+    fecha_vencimiento: fechaVencimiento.toISOString(),
+  });
+
+  if (error) return { error: error.message };
+
+  // Marcar ejemplar como prestado
+  await supabase
+    .from('ejemplares')
+    .update({ estado: 'prestado' })
+    .eq('id', ejemplar_id);
+
+  // Marcar reserva como completada
+  await supabase
+    .from('reservas')
+    .update({ estado: 'completada' })
+    .eq('id', reserva_id);
+
+  redirect('/prestamos');
+}

@@ -81,7 +81,7 @@ export default async function DashboardPage() {
       </p>
 
       {/* Alertas de vencimiento */}
-      {alertas && alertas.length > 0 && (
+      {!esAdmin && alertas && alertas.length > 0 && (
         <div className="mb-6 space-y-2">
           {alertas.map((p) => {
             const vencido = new Date(p.fecha_vencimiento) < hoy;
