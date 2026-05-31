@@ -24,6 +24,7 @@ export async function crearLibroAction(formData) {
       anio: anio || null,
       categoria_id: categoria_id || null,
       descripcion,
+      dias_prestamo: parseInt(formData.get('dias_prestamo')) || 8,
     })
     .select()
     .single();
@@ -77,6 +78,7 @@ export async function editarLibroAction(formData) {
       anio: formData.get('anio') || null,
       categoria_id: formData.get('categoria_id') || null,
       descripcion: formData.get('descripcion'),
+      dias_prestamo: parseInt(formData.get('dias_prestamo')) || 8,
     })
     .eq('id', id);
 
@@ -85,34 +87,34 @@ export async function editarLibroAction(formData) {
 }
 
 export async function eliminarLibroAction(formData) {
-  const supabase = await createClient()
-  const id = formData.get('id')
+  const supabase = await createClient();
+  const id = formData.get('id');
 
   // Obtener ejemplares del libro
   const { data: ejemplares } = await supabase
     .from('ejemplares')
     .select('id')
-    .eq('libro_id', id)
+    .eq('libro_id', id);
 
   if (ejemplares?.length > 0) {
-    const ejemplarIds = ejemplares.map(e => e.id)
+    const ejemplarIds = ejemplares.map((e) => e.id);
 
     // Verificar si tiene préstamos activos
     const { data: prestamosActivos } = await supabase
       .from('prestamos')
       .select('id')
       .in('ejemplar_id', ejemplarIds)
-      .eq('estado', 'aprobado')
+      .eq('estado', 'aprobado');
 
     if (prestamosActivos?.length > 0) {
-      return { error: 'No se puede eliminar un libro con préstamos activos' }
+      return { error: 'No se puede eliminar un libro con préstamos activos' };
     }
 
     // Eliminar préstamos históricos y ejemplares
-    await supabase.from('prestamos').delete().in('ejemplar_id', ejemplarIds)
-    await supabase.from('ejemplares').delete().eq('libro_id', id)
+    await supabase.from('prestamos').delete().in('ejemplar_id', ejemplarIds);
+    await supabase.from('ejemplares').delete().eq('libro_id', id);
   }
 
-  await supabase.from('libros').delete().eq('id', id)
-  redirect('/libros')
+  await supabase.from('libros').delete().eq('id', id);
+  redirect('/libros');
 }

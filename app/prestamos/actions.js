@@ -75,18 +75,18 @@ export async function aprobarPrestamoAction(formData) {
   const id = formData.get('id');
   const ejemplar_id = formData.get('ejemplar_id');
 
-  // Obtener config de días de préstamo
-  const { data: config } = await supabase
-    .from('configuracion')
-    .select('dias_prestamo')
+  // Obtener días de préstamo del libro
+  const { data: ejemplar } = await supabase
+    .from('ejemplares')
+    .select('libro_id, libros(dias_prestamo)')
+    .eq('id', ejemplar_id)
     .single();
 
-  const diasPrestamo = config?.dias_prestamo || 7;
+  const diasPrestamo = ejemplar?.libros?.dias_prestamo || 8;
   const fechaPrestamo = new Date();
   const fechaVencimiento = new Date();
   fechaVencimiento.setDate(fechaVencimiento.getDate() + diasPrestamo);
 
-  // Obtener el auth_id del bibliotecario actual
   const {
     data: { user },
   } = await supabase.auth.getUser();
@@ -96,7 +96,6 @@ export async function aprobarPrestamoAction(formData) {
     .eq('auth_id', user.id)
     .single();
 
-  // Actualizar préstamo
   await supabase
     .from('prestamos')
     .update({
@@ -107,7 +106,6 @@ export async function aprobarPrestamoAction(formData) {
     })
     .eq('id', id);
 
-  // Actualizar estado del ejemplar
   await supabase
     .from('ejemplares')
     .update({ estado: 'prestado' })
@@ -175,6 +173,52 @@ export async function rechazarPrestamoAction(formData) {
     .update({
       estado: 'devuelto',
       observaciones: 'Solicitud rechazada por el bibliotecario',
+    })
+    .eq('id', id);
+
+  redirect('/prestamos');
+}
+
+export async function ampliarPrestamoAction(formData) {
+  const supabase = await createClient();
+  const id = formData.get('id');
+  const ejemplar_id = formData.get('ejemplar_id');
+
+  // Verificar que no haya reservas activas para este ejemplar
+  const { data: reservasActivas } = await supabase
+    .from('reservas')
+    .select('id')
+    .eq('ejemplar_id', ejemplar_id)
+    .eq('estado', 'activa');
+
+  if (reservasActivas?.length > 0) {
+    return {
+      error:
+        'No se puede ampliar el préstamo porque el ejemplar tiene reservas activas',
+    };
+  }
+
+  // Verificar que no haya sido ampliado ya
+  const { data: prestamo } = await supabase
+    .from('prestamos')
+    .select('ampliado, fecha_vencimiento, ejemplares(libros(dias_prestamo))')
+    .eq('id', id)
+    .single();
+
+  if (prestamo?.ampliado) {
+    return { error: 'Este préstamo ya fue ampliado anteriormente' };
+  }
+
+  const diasExtra = prestamo?.ejemplares?.libros?.dias_prestamo || 8;
+  const nuevaFecha = new Date(prestamo.fecha_vencimiento);
+  nuevaFecha.setDate(nuevaFecha.getDate() + diasExtra);
+
+  await supabase
+    .from('prestamos')
+    .update({
+      fecha_vencimiento: nuevaFecha.toISOString(),
+      ampliado: true,
+      fecha_ampliacion: new Date().toISOString(),
     })
     .eq('id', id);
 
