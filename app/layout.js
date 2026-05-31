@@ -71,6 +71,13 @@ export default async function RootLayout({ children }) {
                 >
                   Préstamos
                 </Link>
+
+                <Link
+                  href="/reservas"
+                  className="hover:text-blue-200 transition"
+                >
+                  Reservas
+                </Link>
                 {esAdmin && (
                   <Link
                     href="/reportes"

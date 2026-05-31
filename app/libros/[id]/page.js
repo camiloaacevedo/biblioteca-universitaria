@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import SolicitarPrestamoBtn from './SolicitarPrestamoBtn';
+import ReservarBtn from './ReservarBtn';
 
 export default async function DetalleLibroPage({ params }) {
   const supabase = await createClient();
@@ -151,6 +152,12 @@ export default async function DetalleLibroPage({ params }) {
                 ejemplares={libro.ejemplares}
               />
             </div>
+          )}
+          {!esAdmin && (
+            <ReservarBtn
+              usuarioId={usuarioActual?.id}
+              ejemplares={libro.ejemplares}
+            />
           )}
         </div>
       </div>

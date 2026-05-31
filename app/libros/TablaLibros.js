@@ -8,7 +8,7 @@ export default function TablaLibros({ libros, esAdmin }) {
     <tbody className="divide-y divide-gray-100">
       {libros?.length === 0 && (
         <tr>
-          <td colSpan={6} className="text-center py-8 text-gray-400">
+          <td colSpan={7} className="text-center py-8 text-gray-400">
             No hay libros registrados
           </td>
         </tr>
@@ -28,6 +28,11 @@ export default function TablaLibros({ libros, esAdmin }) {
             <td className="px-4 py-3 text-gray-600">{autores}</td>
             <td className="px-4 py-3 text-gray-600">
               {libro.categorias?.nombre || '—'}
+            </td>
+            <td className="px-4 py-3">
+              <span className="px-2 py-1 rounded-full text-xs font-medium bg-gray-100 text-gray-700">
+                {libro.dias_prestamo} día(s)
+              </span>
             </td>
             <td className="px-4 py-3">
               <span

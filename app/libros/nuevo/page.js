@@ -3,7 +3,7 @@ export const dynamic = 'force-dynamic';
 import { createClient } from '@/lib/supabase/server';
 import { crearLibroAction } from '../actions';
 import Link from 'next/link';
-import BotonSubmit from '@/app/components/BotonSubmit'
+import BotonSubmit from '@/app/components/BotonSubmit';
 
 export default async function NuevoLibroPage() {
   const supabase = await createClient();
@@ -123,6 +123,20 @@ export default async function NuevoLibroPage() {
               className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
               placeholder="Descripción del libro..."
             />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Días de préstamo *
+            </label>
+            <select
+              name="dias_prestamo"
+              required
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              <option value="8">8 días (estándar)</option>
+              <option value="1">1 día (consulta)</option>
+            </select>
           </div>
 
           <div className="flex gap-3 pt-2">
